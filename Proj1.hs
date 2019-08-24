@@ -26,27 +26,18 @@ import Data.List
 import Debug.Trace
 
 -- |The list of selected cards from a deck.
-
 type Selection = [Card]
 
 -- |The respondent's feedback, made up by (correctCards, lowerRanks, 
 --  correctRanks, higherRanks, correctSuits).
 --
 --  See `feedback` function to see how each element is defined.
-
-type Feedback = (Int, Int, Int, Int, Int)
+type Feedback = (Int,Int,Int,Int,Int)
 
 -- |The representation of informaiton to be passed from one call of either of
 --  the guess function to the other call. In order to cascading data between 
---  funcitons.
-
-data GameState = GameState
-    -- |The attribute for the list of not guessed selections.
-    { remaining :: [Selection]
-    -- |The attribute for the list of gussed selections.
-    , guesses   :: [Selection]
-    -- |The attribute for the list of feedbacks for each guess.
-    , feedbacks :: [Feedback] }
+--  funcitons. It records the possible selections based on the past guesses.
+type GameState = [Selection]
 
 -- ******************************* constants **********************************
 -- |The constant for the first card in the Card Enum.
@@ -57,8 +48,11 @@ firstCard = minBound :: Card
 lastCard :: Card
 lastCard = maxBound :: Card
 
--- ***************************** helper function ******************************
+-- |The constant for the number of ranks in the Card Enum.
+rankNum :: Int
+rankNum = 13
 
+-- ***************************** helper function ******************************
 -- |A helper function. Calculate the lowesr rank among a list of cards.
 --
 --  Assume non emopty list input.
@@ -82,19 +76,16 @@ ranks :: Selection -> [Rank]
 ranks cards = map (\x -> rank x) cards
 
 -- |A helper function. Get the common elements between two lists. Each match is
---  counted once.
---
---      E.g. 
---          intersectOnce [1, 1, 2] [1, 2, 3] = [1, 2]
---          intersectOnce [1, 2, 3] [1, 1, 2] = [1, 2] 
---
---  Modify from: https://stackoverflow.com/a/27332905
+--  counted once. Modify from: https://stackoverflow.com/a/27332905
+--  E.g. 
+--      intersectOnce [1, 1, 2] [1, 2, 3] = [1, 2]
+--      intersectOnce [1, 2, 3] [1, 1, 2] = [1, 2] 
 intersectOnce :: Ord a => [a] -> [a] -> [a]
 intersectOnce xs ys = xs \\ (xs \\ ys)
 
 -- |A helper function. It takes a number of cards to be chosen from the 
---  remaining possible cards. It generates all possible selections of `N` cards
---  from a deck with 52 non-joker cards.
+--  remaining possible cards and remaining possible cards. It generates all 
+--  possible selections of `N` cards from a deck with 52 non-joker cards.
 --
 --  Note: 
 --      As the order of selections is not the matter, so the successor selected
@@ -108,35 +99,35 @@ generateAllSelections cardNum remainingCards =
     [(x:y) | x <- remainingCards, 
              y <- generateAllSelections (cardNum-1) (tail [x .. lastCard])]
 
-getRemainPossibleAnswers :: GameState -> [Selection]
-getRemainPossibleAnswers gameState = [x | x <- remainingSelections, checkSelectionPossible (x, guessedSelections, guessedFeedbacks)]
-    where
-        remainingSelections = remaining gameState
-        guessedSelections = guesses gameState
-        guessedFeedbacks = feedbacks gameState
-
-checkSelectionPossible :: (Selection, [Selection], [Feedback]) -> Bool
-checkSelectionPossible (possibleSelection, guessed, feedbacks) = and (map (\(x, y) -> (feedback possibleSelection x) == y) (zip guessed feedbacks))
-
-
-
-chooseGuess :: [[Card]] -> [(Int, [Card])]
-chooseGuess guesses = [(calScore x, g) | (x, g) <- grouped]
+-- score: expected number of remaining possible answers for the guess
+-- |A helper function. It takes a list of selection(i.e.: possible guesses) and
+--  return a list of tuples consists of score and the guess
+calGuessesScore :: [Selection] -> [(Int, Selection)]
+calGuessesScore guesses = [(calScore x, g) | (x, g) <- grouped]
     where 
-        pairedGuesses = [(g, guesses) | g <- guesses]
-        grouped = [(groupGuess g as, g) | (g, as) <- pairedGuesses]
+        -- divide guesses by a guess and the rest
+        dividedGuesses = [(g, guesses) | g <- guesses]
+        grouped = [(groupGuessAnsFeedback g as, g) | (g, as) <- dividedGuesses]
 
-groupGuess :: [Card] -> [[Card]] -> [[(Int,Int,Int,Int,Int)]]
-groupGuess g as = group $ sort $ [feedback a g | a <- as]
+-- |A helper function. It associates a guess with a list of answers and then 
+--  group the associated list by the feedback of each list element. 
+--  In the code, `sort` before the `group` because haskell only group 
+--  consecutive common elements.
+groupGuessAnsFeedback :: Selection -> [Selection] -> [[Feedback]]
+groupGuessAnsFeedback g as = group $ sort $ [feedback a g | a <- as]
 
-calScore :: [[(Int,Int,Int,Int,Int)]] -> Int
-calScore groups = (sum (map (\x -> (length x) ^ 2) groups)) `div` (sum (map length groups))
+-- |A helper function. It takes grouped Feedback and return the calculated 
+--  by: 
+--  (the sum of the squares of the group sizes) / (the sum of the group sizes)
+calScore :: [[Feedback]] -> Int
+calScore groups = (sum (map (\x -> (length x) ^ 2) groups)) `div` 
+                    (sum (map length groups))
 
 -- ****************************** major function ******************************
-
 -- |A major function. It takes a target and a guess (in the order as described 
 --  in Cards.hs Line 33), each represented as a `Selection`, and returns the 5
---  feedback numbers, as explained below, as a tuple.
+--  feedback numbers: (correctCards, lowerRanks, correctRanks, higherRanks, 
+--  correctSuits), as a tuple.
 feedback :: Selection -> Selection -> Feedback
 feedback target guess = 
         (correctCards, lowerRanks, correctRanks, higherRanks, correctSuits)
@@ -174,25 +165,34 @@ feedback target guess =
         --  highest rank in the guess.
         higherRanks = length $ filter (>guessesHighestRank) targetRanks
 
-
+-- |A major function. It takes the number of cards in the answer. It outputs a
+--  selection of initial guess and the game state, as a tuple.
+--
+--  It assumes that the cardNum ranges from 2-4 inclusively.
 initialGuess :: Int -> (Selection,GameState)
-initialGuess cardNum = (firstGuess, gameState)
+initialGuess ansNum = (firstGuess, gameState)
     where
-        deck = [(minBound :: Card) .. (maxBound :: Card)]
-        allGuesses = filter (\x -> cardNum == length x) $ generateAllSelections cardNum deck
+        -- initially game state is the whole domain
+        deck = [firstCard .. lastCard]
+        gameState = generateAllSelections ansNum deck
         
-        firstGuess = take cardNum $ zipWith (\s r -> Card s ([R2 .. Ace] !! r)) [Club .. Spade] (reverse [0, (13 `div` (cardNum+1)) .. 12])
+        -- In general, for an n card answer, first guess is chosen according to
+        -- the guideline: ranks that are about 13/(n + 1) ranks apart are 
+        -- chosen and associated with different suits.
+        rankApart = rankNum `div` (ansNum + 1)
+        ans4Cards = zipWith (\s i -> Card s ([Ace, King .. R2] !! i)) 
+                        [Club .. Spade] ([0, rankApart .. 12])
+        firstGuess = take ansNum $ ans4Cards
 
-        gameState = GameState allGuesses [] []
-
--- TODO test
-nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
-nextGuess (previousGuess, oldGameState) guessFeedback = (guess, newGameState)
+-- |A major function. It takes as input a pair of the previous guess and game 
+--  state, and the feedback to this guess, and returns a pair of the next guess
+--  and new game state.
+nextGuess :: (Selection,GameState) -> Feedback -> (Selection,GameState)
+nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
     where
-        oldGameStateRemaining = remaining oldGameState
-        oldGameStateGuesses = guesses oldGameState
-        oldGameStateFeedbacks = feedbacks oldGameState
-        newGameState = GameState (delete previousGuess oldGameStateRemaining) (previousGuess:oldGameStateGuesses) (guessFeedback:oldGameStateFeedbacks)
-        remainingPossibleAnswers = getRemainPossibleAnswers newGameState
-        tmp = chooseGuess remainingPossibleAnswers
-        guess = snd $ head $ sort tmp
+        newGameState = filter (\x -> preGuessFeedback == feedback x preGuess) $ 
+                        delete preGuess oldGameState
+        --  score: expected number of remaining possible answers for the guess
+        --  Sort the list of (score, guess) increasingly. Thus the guess with 
+        --  min score.
+        guess = snd $ head $ sort $ calGuessesScore newGameState

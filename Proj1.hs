@@ -1,92 +1,142 @@
-
+--  File     : Proj1.hs
+--  Author   : XuLin Yang 904904 <xuliny@student.unimelb.edu.au>
+--  Origin   : Sat Aug 24 14:58:04 2019
+--  Purpose  : An implementation of 2-player logical guessing game solution.
+--
+-- |This code is for providing the implementation for the two-player logical 
+--  guessing game. It is defined in three functions: 
+--      `feedback` for the respondent side 
+--      `initialGuess`, `nextGuess` for the guesser side.
+--
+--  The program is for solving the game that is the respondent have `N` 
+--  selected secret cards from a deck of 52 cards without jokers for the 
+--  guesser to guess. The guesser first make the guess by calling 
+--  `initialGuess` and then the respondent response `feedback` for the guessed
+--  selection of cards and the secret selection of cards. After that the 
+--  guesser repeat the process by using `nextGuess` with the respondent's 
+--  `feedback` until the guesser get the correct selection.
+--  
+--  The program assume the respondent has a selection of 2-4 cards. (i.e.: N 
+--  range from 2 to 4 inclusively).
 
 module Proj1 (feedback, initialGuess, nextGuess, GameState) where
+
 import Card
 import Data.List
 import Debug.Trace
 
-lastCard = (Card Spade Ace)
+-- |The list of selected cards from a deck.
 
 type Selection = [Card]
+
+-- |The respondent's feedback, made up by (correctCards, lowerRanks, 
+--  correctRanks, higherRanks, correctSuits).
+--
+--  See `feedback` function to see how each element is defined.
+
 type Feedback = (Int, Int, Int, Int, Int)
 
--- lists of card guess
--- type GameState = [Selection]
-data GameState = GameState {remaining::[Selection], guesses::[Selection], feedbacks::[Feedback]}
+-- |The representation of informaiton to be passed from one call of either of
+--  the guess function to the other call. In order to cascading data between 
+--  funcitons.
 
--- Does not work for empty lists (so maybe needs to be wrapped in some logic)
+data GameState = GameState
+    -- |The attribute for the list of not guessed selections.
+    { remaining :: [Selection]
+    -- |The attribute for the list of gussed selections.
+    , guesses   :: [Selection]
+    -- |The attribute for the list of feedbacks for each guess.
+    , feedbacks :: [Feedback] }
+
+
+-- ***************************** helper function ******************************
+
+-- |A helper function. Calculate the lowesr rank among a list of cards.
+--
+--  Assume non emopty list input.
 lowestRank :: Selection -> Rank
+lowestRank [] = error "Selection should not be empty!"
 lowestRank cards = foldr1 min $ map rank cards
 
+-- |A helper function. Calculate the highest rank among a list of cards.
+--
+--  Assume non emopty list input.
 highestRank :: Selection -> Rank
+highestRank [] = error "Selection should not be empty!"
 highestRank cards = foldr1 max $ map rank cards
 
+-- |A helper function. Get the list of suit from the selection of cards.
 suits :: Selection -> [Suit]
 suits cards = map (\x -> suit x) cards
 
+-- |A helper function. Get the list of rank from the selection of cards.
 ranks :: Selection -> [Rank]
 ranks cards = map (\x -> rank x) cards
 
-hasDuplicates :: (Ord a) => [a] -> Bool
-hasDuplicates xs = length (nub xs) /= length xs
+-- |A helper function. Get the common elements between two lists. Each match is
+--  counted once.
+--
+--      E.g. 
+--          intersectOnce [1, 1, 2] [1, 2, 3] = [1, 2]
+--          intersectOnce [1, 2, 3] [1, 1, 2] = [1, 2] 
+--
+--  Modify from: https://stackoverflow.com/a/27332905
+intersectOnce :: Ord a => [a] -> [a] -> [a]
+intersectOnce xs ys = xs \\ (xs \\ ys)
 
--- https://stackoverflow.com/a/27332905
-filterCommonOnce :: Ord a => [a] -> [a] -> [a]
-filterCommonOnce xs ys = xs \\ (xs \\ ys)
 
--- https://stackoverflow.com/q/6121256
--- allTheSame :: (Eq a) => [a] -> Bool
--- allTheSame xs = and $ map (== head xs) (tail xs)
+-- ****************************** major function ******************************
 
--- https://stackoverflow.com/a/39342644
--- getMatch :: Ord a => [a] -> [a] -> Int
--- getMatch l r = getMatch' (sort l) (sort r)
--- getMatch' :: Ord a => [a] -> [a] -> Int
--- getMatch' [] _ = 0
--- getMatch' _ [] = 0
--- getMatch' l@(a: as) r@(b: bs) | a < b = getMatch' as r
---                               | a == b = getMatch' as bs + 1
---                               | otherwise = getMatch' l bs
-
--- TODO test
+-- |A major function. It takes a target and a guess (in the order as described 
+--  in Cards.hs Line 33), each represented as a `Selection`, and returns the 5
+--  feedback numbers, as explained below, as a tuple.
 feedback :: Selection -> Selection -> Feedback
-feedback target cards = (correctCards, lowerRanks, correctRanks, higherRanks, correctSuits)
+feedback target guess = 
+        (correctCards, lowerRanks, correctRanks, higherRanks, correctSuits)
     where
-        cardsLowestRank = lowestRank cards
-        cardsHighestRank = highestRank cards
-        cardSuits = suits cards
+        guessesLowestRank = lowestRank guess
+        guessesHighestRank = highestRank guess
+        guessesSuits = suits guess
         targetSuits = suits target
-        cardRanks = ranks cards
+        guessedRanks = ranks guess
         targetRanks = ranks target
 
-        correctCards = length $ filter (\x -> elem x cards) target
-        lowerRanks = length $ filter (\x -> rank x < cardsLowestRank) target
-        correctRanks = length $ filterCommonOnce cardRanks targetRanks -- getMatch cardRanks targetRanks
-        higherRanks = length $ filter (\x -> rank x > cardsHighestRank) target
-        correctSuits = length $ filterCommonOnce cardSuits targetSuits -- getMatch cardSuits targetSuits
+        -- |The number of cards in the target are also in the guess.
+        correctCards = length $ filter (\x -> elem x guess) target
 
--- generateAllGuess :: Int -> [[Card]]
--- generateAllGuess 0 = [[]]
--- generateAllGuess cardNum = nub [sort (x:y) | x <- deck, y <- generateAllGuess (cardNum-1), not $ hasDuplicates (x:y)]
---     where
---         deck = [(Card Club R2) .. (Card Spade Ace)]
+        -- |The number of cards in the target having the same rank as a card in
+        --  the guess.
+        --  
+        --  Note: X for arbitrary suit
+        --      target = [QX, QX], guesses [QX]     => correctRanks = [QX]
+        --      target = [QX],     guesses [QX, QX] => correctRanks = [QX]
+        correctRanks = length $ intersectOnce guessedRanks targetRanks 
+        
+        -- |The number of cards in the target having the same Suit as a card in
+        --  the guess.
+        --  
+        --  Note:
+        --      The procedure of matched card is symmetric as the above one.
+        correctSuits = length $ intersectOnce guessesSuits targetSuits
+        
+        -- |The number of cards in the target having the rank lower than the 
+        --  lowest rank in the guess.
+        lowerRanks = length $ filter (<guessesLowestRank) targetRanks
+        
+        -- |The number of cards in the target having the rank higher than the 
+        --  highest rank in the guess.
+        higherRanks = length $ filter (>guessesHighestRank) targetRanks
 
--- initialGuess :: Int -> ([Card],GameState)
--- initialGuess cardNum = (firstGuess, delete firstGuess allGuesses)
--- -- initialGuess cardNum = trace (show allGuesses) (firstGuess, delete firstGuess allGuesses)
---     where
---         allGuesses = generateAllGuess cardNum
---         firstGuess = head allGuesses
-
+-- |A helper function. 
 generateAllGuess :: Int -> Selection -> [Selection]
 generateAllGuess 0 _ = [[]]
-generateAllGuess cardNum remainingCards = [(x:y) | x <- remainingCards, y <- generateAllGuess (cardNum-1) (tail [x .. lastCard])]
+generateAllGuess cardNum remainingCards = [(x:y) | x <- remainingCards, y <- generateAllGuess (cardNum-1) (tail [x .. (maxBound :: Card)])]
 
 initialGuess :: Int -> (Selection,GameState)
 initialGuess cardNum = (firstGuess, gameState)
 -- initialGuess cardNum = trace (show allGuesses) (firstGuess, delete firstGuess allGuesses)
     where
-        deck = [(Card Club R2) .. lastCard]
+        deck = [(minBound :: Card) .. (maxBound :: Card)]
         allGuesses = filter (\x -> cardNum == length x) $ generateAllGuess cardNum deck
         -- firstGuess = trace (show (reverse [0, (13 `div` (cardNum+1)) .. 12]))
         --     (take cardNum $ zipWith (\s r -> Card s ([R2 .. Ace] !! r)) [Club .. Spade] (reverse [0, (13 `div` (cardNum+1)) .. 12]))
@@ -147,9 +197,3 @@ compareFeedback (correctCardsX, lowerRanksX, correctRanksX, higherRanksX, correc
       correctRanksX == correctRanksY &&
       lowerRanksX == lowerRanksY &&
       higherRanksX == higherRanksY
-
--- updateGameState :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> GameState
--- updateGameState (previousGuess, gameState) guessFeedback = filter (\x -> compareFeedback guessFeedback (feedback x previousGuess)) gameState
-
--- updateGameState :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> GameState
--- updateGameState (previousGuess, gameState) guessFeedback = filter (\x -> guessFeedback == (feedback previousGuess x)) gameState

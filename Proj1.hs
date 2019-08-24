@@ -48,6 +48,14 @@ data GameState = GameState
     -- |The attribute for the list of feedbacks for each guess.
     , feedbacks :: [Feedback] }
 
+-- ******************************* constants **********************************
+-- |The constant for the first card in the Card Enum.
+firstCard :: Card
+firstCard = minBound :: Card
+
+-- |The constant for the last card in the Card Enum.
+lastCard :: Card
+lastCard = maxBound :: Card
 
 -- ***************************** helper function ******************************
 
@@ -84,6 +92,45 @@ ranks cards = map (\x -> rank x) cards
 intersectOnce :: Ord a => [a] -> [a] -> [a]
 intersectOnce xs ys = xs \\ (xs \\ ys)
 
+-- |A helper function. It takes a number of cards to be chosen from the 
+--  remaining possible cards. It generates all possible selections of `N` cards
+--  from a deck with 52 non-joker cards.
+--
+--  Note: 
+--      As the order of selections is not the matter, so the successor selected
+--      card will have a larger enum index. Otherwise, it is a duplicate 
+--      selection. In the code, drop the first possible card in the domain when
+--      choosing the next card ensuring the generated selections will not have 
+--      duplication.
+generateAllSelections :: Int -> Selection -> [Selection]
+generateAllSelections 0 _ = [[]]
+generateAllSelections cardNum remainingCards = 
+    [(x:y) | x <- remainingCards, 
+             y <- generateAllSelections (cardNum-1) (tail [x .. lastCard])]
+
+getRemainPossibleAnswers :: GameState -> [Selection]
+getRemainPossibleAnswers gameState = [x | x <- remainingSelections, checkSelectionPossible (x, guessedSelections, guessedFeedbacks)]
+    where
+        remainingSelections = remaining gameState
+        guessedSelections = guesses gameState
+        guessedFeedbacks = feedbacks gameState
+
+checkSelectionPossible :: (Selection, [Selection], [Feedback]) -> Bool
+checkSelectionPossible (possibleSelection, guessed, feedbacks) = and (map (\(x, y) -> (feedback possibleSelection x) == y) (zip guessed feedbacks))
+
+
+
+chooseGuess :: [[Card]] -> [(Int, [Card])]
+chooseGuess guesses = [(calScore x, g) | (x, g) <- grouped]
+    where 
+        pairedGuesses = [(g, guesses) | g <- guesses]
+        grouped = [(groupGuess g as, g) | (g, as) <- pairedGuesses]
+
+groupGuess :: [Card] -> [[Card]] -> [[(Int,Int,Int,Int,Int)]]
+groupGuess g as = group $ sort $ [feedback a g | a <- as]
+
+calScore :: [[(Int,Int,Int,Int,Int)]] -> Int
+calScore groups = (sum (map (\x -> (length x) ^ 2) groups)) `div` (sum (map length groups))
 
 -- ****************************** major function ******************************
 
@@ -127,26 +174,19 @@ feedback target guess =
         --  highest rank in the guess.
         higherRanks = length $ filter (>guessesHighestRank) targetRanks
 
--- |A helper function. 
-generateAllGuess :: Int -> Selection -> [Selection]
-generateAllGuess 0 _ = [[]]
-generateAllGuess cardNum remainingCards = [(x:y) | x <- remainingCards, y <- generateAllGuess (cardNum-1) (tail [x .. (maxBound :: Card)])]
 
 initialGuess :: Int -> (Selection,GameState)
 initialGuess cardNum = (firstGuess, gameState)
--- initialGuess cardNum = trace (show allGuesses) (firstGuess, delete firstGuess allGuesses)
     where
         deck = [(minBound :: Card) .. (maxBound :: Card)]
-        allGuesses = filter (\x -> cardNum == length x) $ generateAllGuess cardNum deck
-        -- firstGuess = trace (show (reverse [0, (13 `div` (cardNum+1)) .. 12]))
-        --     (take cardNum $ zipWith (\s r -> Card s ([R2 .. Ace] !! r)) [Club .. Spade] (reverse [0, (13 `div` (cardNum+1)) .. 12]))
+        allGuesses = filter (\x -> cardNum == length x) $ generateAllSelections cardNum deck
+        
         firstGuess = take cardNum $ zipWith (\s r -> Card s ([R2 .. Ace] !! r)) [Club .. Spade] (reverse [0, (13 `div` (cardNum+1)) .. 12])
 
         gameState = GameState allGuesses [] []
 
 -- TODO test
 nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
--- nextGuess (previousGuess, gameState) guessFeedback = trace (show $ length gameState) (guess, delete guess gameState)
 nextGuess (previousGuess, oldGameState) guessFeedback = (guess, newGameState)
     where
         oldGameStateRemaining = remaining oldGameState
@@ -154,35 +194,5 @@ nextGuess (previousGuess, oldGameState) guessFeedback = (guess, newGameState)
         oldGameStateFeedbacks = feedbacks oldGameState
         newGameState = GameState (delete previousGuess oldGameStateRemaining) (previousGuess:oldGameStateGuesses) (guessFeedback:oldGameStateFeedbacks)
         remainingPossibleAnswers = getRemainPossibleAnswers newGameState
-        -- guess = trace (show updatedGameState) (head updatedGameState)
-        -- tmp = trace (show updatedGameState) (chooseGuess updatedGameState)
-        -- tmp = trace ((show $ sort $ chooseGuess updatedGameState) ++ "\n") (chooseGuess updatedGameState)
         tmp = chooseGuess remainingPossibleAnswers
-        -- guess = head updatedGameState
         guess = snd $ head $ sort tmp
-
-getRemainPossibleAnswers :: GameState -> [Selection]
-getRemainPossibleAnswers gameState = [x | x <- remainingSelections, checkSelectionPossible (x, guessedSelections, guessedFeedbacks)]
-    where
-        remainingSelections = remaining gameState
-        guessedSelections = guesses gameState
-        guessedFeedbacks = feedbacks gameState
-
-checkSelectionPossible :: (Selection, [Selection], [Feedback]) -> Bool
-checkSelectionPossible (possibleSelection, guessed, feedbacks) = and (map (\(x, y) -> (feedback possibleSelection x) == y) (zip guessed feedbacks))
-
-
-
-chooseGuess :: [[Card]] -> [(Int, [Card])]
-chooseGuess guesses = [(calScore x, g) | (x, g) <- grouped]
-    where 
-        -- pairedGuesses = [(g, delete g guesses) | g <- guesses]
-        pairedGuesses = [(g, guesses) | g <- guesses]
-        -- grouped = trace (show pairedGuesses) [(groupGuess g as, g) | (g, as) <- pairedGuesses]
-        grouped = [(groupGuess g as, g) | (g, as) <- pairedGuesses]
-
-groupGuess :: [Card] -> [[Card]] -> [[(Int,Int,Int,Int,Int)]]
-groupGuess g as = group $ sort $ [feedback a g | a <- as]
-
-calScore :: [[(Int,Int,Int,Int,Int)]] -> Int
-calScore groups = (sum (map (\x -> (length x) ^ 2) groups)) `div` (sum (map length groups))

@@ -186,14 +186,3 @@ groupGuess g as = group $ sort $ [feedback a g | a <- as]
 
 calScore :: [[(Int,Int,Int,Int,Int)]] -> Int
 calScore groups = (sum (map (\x -> (length x) ^ 2) groups)) `div` (sum (map length groups))
-
-
-
-compareFeedback :: (Int,Int,Int,Int,Int) -> (Int,Int,Int,Int,Int) -> Bool
-compareFeedback (correctCardsX, lowerRanksX, correctRanksX, higherRanksX, correctSuitsX)
-                (correctCardsY, lowerRanksY, correctRanksY, higherRanksY, correctSuitsY)
-    = correctCardsX == correctCardsY && 
-      correctSuitsX == correctSuitsY &&
-      correctRanksX == correctRanksY &&
-      lowerRanksX == lowerRanksY &&
-      higherRanksX == higherRanksY

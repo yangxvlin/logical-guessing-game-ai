@@ -48,7 +48,7 @@ if __name__ == '__main__':
     total_time = 0
     for test in answers2Cards:
         start = time.time()
-        res = subprocess.run(["./Proj1Test.exe", test[0], test[1]], stdout=subprocess.PIPE) 
+        res = subprocess.run(["./Proj1Test", test[0], test[1]], stdout=subprocess.PIPE) 
         end = time.time()
         
         epsilon = round(end - start, 4)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     total_time = 0
     for test in answers3Cards:
         start = time.time()
-        res = subprocess.run(["./Proj1Test.exe", test[0], test[1], test[2]], stdout=subprocess.PIPE) 
+        res = subprocess.run(["./Proj1Test", test[0], test[1], test[2]], stdout=subprocess.PIPE) 
         end = time.time()
         
         epsilon = round(end - start, 4)
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     total_time = 0
     for test in answers4Cards:
         start = time.time()
-        res = subprocess.run(["./Proj1Test.exe", test[0], test[1], test[2], test[3]], stdout=subprocess.PIPE) 
+        res = subprocess.run(["./Proj1Test", test[0], test[1], test[2], test[3]], stdout=subprocess.PIPE) 
         end = time.time()
         
         epsilon = round(end - start, 4)

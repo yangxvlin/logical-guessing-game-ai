@@ -37,7 +37,7 @@ type Feedback = (Int,Int,Int,Int,Int)
 -- |The representation of informaiton to be passed from one call of either of
 --  the guess function to the other call. In order to cascading data between 
 --  funcitons. It records the possible selections based on the past guesses.
-type GameState = [Selection]
+data GameState = GameState {domain::[Selection], ansNum::Int, guessesNum::Int}
 
 -- ******************************* constants **********************************
 -- |The constant for the first card in the Card Enum.
@@ -53,27 +53,27 @@ rankNum :: Int
 rankNum = 13
 
 -- ***************************** helper function ******************************
--- |A helper function. Calculate the lowesr rank among a list of cards.
+-- |A helper function. Calculate the lowesr rank among a list of ranks.
 --
 --  Assume non emopty list input.
-lowestRank :: Selection -> Rank
-lowestRank [] = error "Selection should not be empty!"
-lowestRank cards = foldr1 min $ map rank cards
+lowestRank :: [Rank] -> Rank
+lowestRank [] = error "Ranks should not be empty!"
+lowestRank ranks = foldr1 min ranks
 
--- |A helper function. Calculate the highest rank among a list of cards.
+-- |A helper function. Calculate the highest rank among a list of ranks.
 --
 --  Assume non emopty list input.
-highestRank :: Selection -> Rank
-highestRank [] = error "Selection should not be empty!"
-highestRank cards = foldr1 max $ map rank cards
+highestRank :: [Rank] -> Rank
+highestRank [] = error "Ranks should not be empty!"
+highestRank ranks = foldr1 max ranks
 
 -- |A helper function. Get the list of suit from the selection of cards.
 suits :: Selection -> [Suit]
-suits cards = map (\x -> suit x) cards
+suits cards = map suit cards
 
 -- |A helper function. Get the list of rank from the selection of cards.
 ranks :: Selection -> [Rank]
-ranks cards = map (\x -> rank x) cards
+ranks cards = map rank cards
 
 -- |A helper function. Get the common elements between two lists. Each match is
 --  counted once. Modify from: https://stackoverflow.com/a/27332905
@@ -100,8 +100,8 @@ generateAllSelections cardNum remainingCards =
              y <- generateAllSelections (cardNum-1) (tail [x .. lastCard])]
 
 -- score: expected number of remaining possible answers for the guess
--- |A helper function. It takes a list of selection(i.e.: possible guesses) and
---  return a list of tuples consists of score and the guess
+-- |A helper function. It takes a list of selections (i.e.: possible guesses)
+--  and returns a list of tuples consists of a score and the guess
 calGuessesScore :: [Selection] -> [(Int, Selection)]
 calGuessesScore guesses = [(calScore x, g) | (x, g) <- grouped]
     where 
@@ -132,12 +132,12 @@ feedback :: Selection -> Selection -> Feedback
 feedback target guess = 
         (correctCards, lowerRanks, correctRanks, higherRanks, correctSuits)
     where
-        guessesLowestRank = lowestRank guess
-        guessesHighestRank = highestRank guess
         guessesSuits = suits guess
         targetSuits = suits target
-        guessedRanks = ranks guess
+        guessesRanks = ranks guess
         targetRanks = ranks target
+        guessesLowestRank = lowestRank guessesRanks
+        guessesHighestRank = highestRank guessesRanks
 
         -- |The number of cards in the target are also in the guess.
         correctCards = length $ filter (\x -> elem x guess) target
@@ -148,19 +148,19 @@ feedback target guess =
         --  Note: X for arbitrary suit
         --      target = [QX, QX], guesses [QX]     => correctRanks = [QX]
         --      target = [QX],     guesses [QX, QX] => correctRanks = [QX]
-        correctRanks = length $ intersectOnce guessedRanks targetRanks 
-        
+        correctRanks = length $ intersectOnce guessesRanks targetRanks 
+
         -- |The number of cards in the target having the same Suit as a card in
         --  the guess.
         --  
         --  Note:
         --      The procedure of matched card is symmetric as the above one.
         correctSuits = length $ intersectOnce guessesSuits targetSuits
-        
+
         -- |The number of cards in the target having the rank lower than the 
         --  lowest rank in the guess.
         lowerRanks = length $ filter (<guessesLowestRank) targetRanks
-        
+
         -- |The number of cards in the target having the rank higher than the 
         --  highest rank in the guess.
         higherRanks = length $ filter (>guessesHighestRank) targetRanks
@@ -170,7 +170,7 @@ feedback target guess =
 --
 --  It assumes that the cardNum ranges from 2-4 inclusively.
 initialGuess :: Int -> (Selection,GameState)
-initialGuess ansNum = (firstGuess, gameState)
+initialGuess ansNum = (firstGuess, GameState gameState ansNum 0) -- <- 0 for no guesses yet
     where
         -- initially game state is the whole domain
         deck = [firstCard .. lastCard]
@@ -180,7 +180,9 @@ initialGuess ansNum = (firstGuess, gameState)
         -- the guideline: ranks that are about 13/(n + 1) ranks apart are 
         -- chosen and associated with different suits.
         rankApart = rankNum `div` (ansNum + 1)
-        ans4Cards = zipWith (\s i -> Card s ([Ace, King .. R2] !! i)) 
+        -- ans4Cards = zipWith (\s i -> Card s ([Ace, King .. R2] !! i)) 
+        --                 [Club .. Spade] ([0, rankApart .. 12])
+        ans4Cards = reverse $ zipWith (\s i -> Card s ([R2 .. Ace] !! i)) 
                         [Club .. Spade] ([0, rankApart .. 12])
         firstGuess = take ansNum $ ans4Cards
 
@@ -190,9 +192,17 @@ initialGuess ansNum = (firstGuess, gameState)
 nextGuess :: (Selection,GameState) -> Feedback -> (Selection,GameState)
 nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
     where
-        newGameState = filter (\x -> preGuessFeedback == feedback x preGuess) $ 
-                        delete preGuess oldGameState
+        oldGameStateDoamin = domain oldGameState
+        _ansNum = ansNum oldGameState
+        _guessesNum = guessesNum oldGameState
+        newGameStateDomain = filter (\x -> preGuessFeedback == feedback x preGuess) $ 
+                        delete preGuess oldGameStateDoamin
         --  score: expected number of remaining possible answers for the guess
         --  Sort the list of (score, guess) increasingly. Thus the guess with 
         --  min score.
-        guess = snd $ head $ sort $ calGuessesScore newGameState
+        guess = if _ansNum==4 && (_guessesNum==0 || (_guessesNum==1 && (length newGameStateDomain)>500)) then
+                    head newGameStateDomain
+                else
+                    snd $ head $ sort $ calGuessesScore newGameStateDomain
+
+        newGameState = GameState newGameStateDomain _ansNum (_guessesNum+1)

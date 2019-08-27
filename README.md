@@ -16,8 +16,17 @@
 
 ## how to run
 
+### run program
 ```
 ./run.sh
+```
+### run haskell test
+```
+./test.sh
+```
+### run pyton summary
+```
+python test.py
 ```
 
 ## feedback

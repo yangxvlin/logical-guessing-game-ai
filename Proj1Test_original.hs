@@ -70,23 +70,21 @@ main = do
 --   is guessed.
 loop :: Selection -> Selection -> GameState -> Int -> IO ()
 loop answer guess other guesses = do
-    -- putStrLn $ "Your guess " ++ show guesses ++ ":  " ++ show guess
+    putStrLn $ "Your guess " ++ show guesses ++ ":  " ++ show guess
     if validSelection guess && length answer == length guess then do
         let result = feedback answer guess
-        -- putStrLn $ "My answer:  " ++ show result
+        putStrLn $ "My answer:  " ++ show result
         if successful guess result then do
-            -- putStrLn $ "You got it in " ++ show guesses ++ " guesses!"
-            putStrLn $ show guesses
-            -- putStrLn $ "Approximate quality = " 
-            --             ++ show (100 * qualityFraction
-            --                            (length answer) 1 guesses)
-            --             ++ "%"
-            putStrLn $ show (100 * qualityFraction (length answer) 1 guesses)
+            putStrLn $ "You got it in " ++ show guesses ++ " guesses!"
+            putStrLn $ "Approximate quality = " 
+                        ++ show (100 * qualityFraction
+                                       (length answer) 1 guesses)
+                        ++ "%"
           else do
             let (guess',other') = nextGuess (guess,other) result
             loop answer guess' other' (guesses+1)
       else do
-        putStrLn "Invalid"
+        putStrLn "Invalid guess"
         exitFailure
 
 -- | Compute the proportion of possible marks that should be awarded for

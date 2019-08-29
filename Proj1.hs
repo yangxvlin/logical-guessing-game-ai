@@ -186,7 +186,7 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
         --  score: expected number of remaining possible answers for the guess
         --  Sort the list of (score, guess) increasingly. Thus the guess with 
         --  min score is chosen.
-        guess = if _ansNum==4 && (_guessesNum==0 || (_guessesNum==1 && (length newGameStateDomain)>2000)) then
+        guess = if _ansNum==4 && (_guessesNum==0 || (_guessesNum==1 && (length newGameStateDomain)>1200)) then
                     head newGameStateDomain
                 else
                     snd $ head $ sort $ calGuessesScore newGameStateDomain

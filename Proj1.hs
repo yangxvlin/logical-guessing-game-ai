@@ -53,20 +53,6 @@ rankNum :: Int
 rankNum = 13
 
 -- ***************************** helper function ******************************
--- |A helper function. Calculate the lowesr rank among a list of ranks.
---
---  Assume non emopty list input.
-lowestRank :: [Rank] -> Rank
-lowestRank [] = error "Ranks should not be empty!"
-lowestRank ranks = foldr1 min ranks
-
--- |A helper function. Calculate the highest rank among a list of ranks.
---
---  Assume non emopty list input.
-highestRank :: [Rank] -> Rank
-highestRank [] = error "Ranks should not be empty!"
-highestRank ranks = foldr1 max ranks
-
 -- |A helper function. Get the list of suit from the selection of cards.
 suits :: Selection -> [Suit]
 suits cards = map suit cards
@@ -136,8 +122,8 @@ feedback target guess =
         targetSuits = suits target
         guessesRanks = ranks guess
         targetRanks = ranks target
-        guessesLowestRank = lowestRank guessesRanks
-        guessesHighestRank = highestRank guessesRanks
+        guessesLowestRank = minimum guessesRanks
+        guessesHighestRank = maximum guessesRanks
 
         -- |The number of cards in the target are also in the guess.
         correctCards = length $ filter (\x -> elem x guess) target
@@ -199,8 +185,8 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
                         delete preGuess oldGameStateDoamin
         --  score: expected number of remaining possible answers for the guess
         --  Sort the list of (score, guess) increasingly. Thus the guess with 
-        --  min score.
-        guess = if _ansNum==4 && (_guessesNum==0 || (_guessesNum==1 && (length newGameStateDomain)>500)) then
+        --  min score is chosen.
+        guess = if _ansNum==4 && (_guessesNum==0 || (_guessesNum==1 && (length newGameStateDomain)>800)) then
                     head newGameStateDomain
                 else
                     snd $ head $ sort $ calGuessesScore newGameStateDomain

@@ -127,7 +127,7 @@ if __name__ == '__main__':
     # print("************************************************")
 
     # n = 4
-    answers4Cards = sample(generateAllSelections(4, deck), 2000)
+    answers4Cards = sample(generateAllSelections(4, deck), 100)
     count = 0
     passed = 0
     not_passed = 0

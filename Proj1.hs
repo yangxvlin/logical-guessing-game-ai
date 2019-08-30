@@ -41,16 +41,19 @@ data GameState = GameState {domain::[Selection], ansNum::Int, guessesNum::Int}
 
 -- ******************************* constants **********************************
 -- |The constant for the first card in the Card Enum.
-firstCard :: Card
 firstCard = minBound :: Card
 
 -- |The constant for the last card in the Card Enum.
-lastCard :: Card
 lastCard = maxBound :: Card
 
 -- |The constant for the number of ranks in the Card Enum.
-rankNum :: Int
 rankNum = 13
+
+-- |The constant for no guess has been made.
+zeroGuess = 0
+
+-- |The constant for the cutoff threshold for domain space size.
+domainThreshold = 1400
 
 -- ***************************** helper function ******************************
 -- |A helper function. Get the list of suit from the selection of cards.
@@ -63,22 +66,19 @@ ranks cards = map rank cards
 
 -- |A helper function. Get the common elements between two lists. Each match is
 --  counted once. Modify from: https://stackoverflow.com/a/27332905
---  E.g. 
---      intersectOnce [1, 1, 2] [1, 2, 3] = [1, 2]
---      intersectOnce [1, 2, 3] [1, 1, 2] = [1, 2] 
+--  E.g.: intersectOnce [1, 1, 2] [1, 2, 3] = [1, 2]
+--        intersectOnce [1, 2, 3] [1, 1, 2] = [1, 2] 
 intersectOnce :: Ord a => [a] -> [a] -> [a]
 intersectOnce xs ys = xs \\ (xs \\ ys)
 
 -- |A helper function. It takes a number of cards to be chosen from the 
 --  remaining possible cards and remaining possible cards. It generates all 
 --  possible selections of `N` cards from a deck with 52 non-joker cards.
---
---  Note: 
---      As the order of selections is not the matter, so the successor selected
---      card will have a larger enum index. Otherwise, it is a duplicate 
---      selection. In the code, drop the first possible card in the domain when
---      choosing the next card ensuring the generated selections will not have 
---      duplication.
+--  Note: As the order of selections is not the matter, so the successor
+--  selected card will have a larger enum index. Otherwise, it is a duplicate 
+--  selection. In the code, drop the first possible card in the domain when
+--  choosing the next card ensuring the generated selections will not have 
+--  duplication.
 generateAllSelections :: Int -> Selection -> [Selection]
 generateAllSelections 0 _ = [[]]
 generateAllSelections cardNum remainingCards = 
@@ -109,6 +109,14 @@ calScore :: [[Feedback]] -> Int
 calScore groups = (sum (map (\x -> (length x) ^ 2) groups)) `div` 
                     (sum (map length groups))
 
+-- |A helper function. It takes 3 integers (#answer cards, #guesses guessed, 
+--  #guess domain) and return true iff there are 4 cards to be guessed and zero
+--  guess has made or one guess has made and domain space is larger than 
+--  threshold. Otherwise, return false.
+skipScoreCalTest :: (Int, Int, Int) -> Bool
+skipScoreCalTest (ansNum, guessesNum, domainNum) = (ansNum == 4) && 
+    ((guessesNum == 0) || ((guessesNum == 1) && (domainNum > domainThreshold)))
+
 -- ****************************** major function ******************************
 -- |A major function. It takes a target and a guess (in the order as described 
 --  in Cards.hs Line 33), each represented as a `Selection`, and returns the 5
@@ -127,36 +135,28 @@ feedback target guess =
 
         -- |The number of cards in the target are also in the guess.
         correctCards = length $ filter (\x -> elem x guess) target
-
         -- |The number of cards in the target having the same rank as a card in
         --  the guess.
-        --  
         --  Note: X for arbitrary suit
         --      target = [QX, QX], guesses [QX]     => correctRanks = [QX]
         --      target = [QX],     guesses [QX, QX] => correctRanks = [QX]
         correctRanks = length $ intersectOnce guessesRanks targetRanks 
-
         -- |The number of cards in the target having the same Suit as a card in
         --  the guess.
-        --  
-        --  Note:
-        --      The procedure of matched card is symmetric as the above one.
+        --  Note: The procedure of matched card is symmetric as the above one.
         correctSuits = length $ intersectOnce guessesSuits targetSuits
-
         -- |The number of cards in the target having the rank lower than the 
         --  lowest rank in the guess.
         lowerRanks = length $ filter (<guessesLowestRank) targetRanks
-
         -- |The number of cards in the target having the rank higher than the 
         --  highest rank in the guess.
         higherRanks = length $ filter (>guessesHighestRank) targetRanks
 
 -- |A major function. It takes the number of cards in the answer. It outputs a
 --  selection of initial guess and the game state, as a tuple.
---
 --  It assumes that the cardNum ranges from 2-4 inclusively.
 initialGuess :: Int -> (Selection,GameState)
-initialGuess ansNum = (firstGuess, GameState gameState ansNum 0) -- <- 0 for no guesses yet
+initialGuess ansNum = (firstGuess, GameState gameState ansNum zeroGuess)
     where
         -- initially game state is the whole domain
         deck = [firstCard .. lastCard]
@@ -166,8 +166,6 @@ initialGuess ansNum = (firstGuess, GameState gameState ansNum 0) -- <- 0 for no 
         -- the guideline: ranks that are about 13/(n + 1) ranks apart are 
         -- chosen and associated with different suits.
         rankApart = rankNum `div` (ansNum + 1)
-        -- ans4Cards = zipWith (\s i -> Card s ([Ace, King .. R2] !! i)) 
-        --                 [Club .. Spade] ([0, rankApart .. 12])
         ans4Cards = reverse $ zipWith (\s i -> Card s ([R2 .. Ace] !! i)) 
                         [Club .. Spade] ([0, rankApart .. 12])
         firstGuess = take ansNum $ ans4Cards
@@ -181,13 +179,17 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
         oldGameStateDoamin = domain oldGameState
         _ansNum = ansNum oldGameState
         _guessesNum = guessesNum oldGameState
-        newGameStateDomain = filter (\x -> preGuessFeedback == feedback x preGuess) $ 
-                        delete preGuess oldGameStateDoamin
-        --  score: expected number of remaining possible answers for the guess
-        --  Sort the list of (score, guess) increasingly. Thus the guess with 
-        --  min score is chosen.
-        guess = if _ansNum==4 && (_guessesNum==0 || (_guessesNum==1 && (length newGameStateDomain)>1400)) then
+        newGameStateDomain = filter (\x -> preGuessFeedback == 
+            feedback x preGuess) $ delete preGuess oldGameStateDoamin
+        newGameStateLen = length newGameStateDomain
+        
+        -- skip calculating score when domain space is too large
+        guess = if (skipScoreCalTest (_ansNum, _guessesNum, newGameStateLen)) 
+                then
                     head newGameStateDomain
+                --  score: expected number of remaining possible answers for 
+                --  the guess. Sort the list that [(score, guess)] increasingly. 
+                --  Thus the guess with min score is chosen.
                 else
                     snd $ head $ sort $ calGuessesScore newGameStateDomain
 

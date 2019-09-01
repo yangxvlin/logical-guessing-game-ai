@@ -126,12 +126,12 @@ feedback :: Selection -> Selection -> Feedback
 feedback target guess = 
         (correctCards, lowerRanks, correctRanks, higherRanks, correctSuits)
     where
-        guessesSuits = suits guess
+        guessSuits = suits guess
         targetSuits = suits target
-        guessesRanks = ranks guess
+        guessRanks = ranks guess
         targetRanks = ranks target
-        guessesLowestRank = minimum guessesRanks
-        guessesHighestRank = maximum guessesRanks
+        guessLowestRank = minimum guessRanks
+        guessHighestRank = maximum guessRanks
 
         -- |The number of cards in the target are also in the guess.
         correctCards = length $ filter (\x -> elem x guess) target
@@ -140,17 +140,17 @@ feedback target guess =
         --  Note: X for arbitrary suit
         --      target = [QX, QX], guesses [QX]     => correctRanks = [QX]
         --      target = [QX],     guesses [QX, QX] => correctRanks = [QX]
-        correctRanks = length $ intersectOnce guessesRanks targetRanks 
+        correctRanks = length $ intersectOnce guessRanks targetRanks 
         -- |The number of cards in the target having the same Suit as a card in
         --  the guess.
         --  Note: The procedure of matched card is symmetric as the above one.
-        correctSuits = length $ intersectOnce guessesSuits targetSuits
+        correctSuits = length $ intersectOnce guessSuits targetSuits
         -- |The number of cards in the target having the rank lower than the 
         --  lowest rank in the guess.
-        lowerRanks = length $ filter (<guessesLowestRank) targetRanks
+        lowerRanks = length $ filter (<guessLowestRank) targetRanks
         -- |The number of cards in the target having the rank higher than the 
         --  highest rank in the guess.
-        higherRanks = length $ filter (>guessesHighestRank) targetRanks
+        higherRanks = length $ filter (>guessHighestRank) targetRanks
 
 -- |A major function. It takes the number of cards in the answer. It outputs a
 --  selection of initial guess and the game state, as a tuple.
@@ -168,7 +168,8 @@ initialGuess ansNum = (firstGuess, GameState gameState ansNum zeroGuess)
         -- chosen and associated with different suits.
         rankApart = rankNum `div` (ansNum + 1)
         ans4Cards = zipWith (\s i -> Card s ([R2 .. Ace] !! i)) 
-                        [Spade, Heart .. Club] ([rankApart, rankApart+rankApart .. 12])
+                        [Spade, Heart .. Club] 
+                        [rankApart, rankApart+rankApart .. 12]
         firstGuess = take ansNum $ ans4Cards
 
 -- |A major function. It takes as input a pair of the previous guess and game 
@@ -178,14 +179,15 @@ nextGuess :: (Selection,GameState) -> Feedback -> (Selection,GameState)
 nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
     where
         oldGameStateDoamin = domain oldGameState
-        _ansNum = ansNum oldGameState
-        _guessesNum = guessesNum oldGameState
+        ansNumber = ansNum oldGameState
+        guessesNumber = guessesNum oldGameState
         newGameStateDomain = filter (\x -> preGuessFeedback == 
             feedback x preGuess) $ delete preGuess oldGameStateDoamin
         newGameStateLen = length newGameStateDomain
         
         -- skip calculating score when domain space is too large
-        guess = if (skipScoreCalTest (_ansNum, _guessesNum, newGameStateLen)) 
+        guess = if (skipScoreCalTest (ansNumber, guessesNumber, 
+                    newGameStateLen)) 
                 then
                     head newGameStateDomain
                 --  score: expected number of remaining possible answers for 
@@ -194,4 +196,4 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
                 else
                     snd $ head $ sort $ calGuessesScore newGameStateDomain
 
-        newGameState = GameState newGameStateDomain _ansNum (_guessesNum+1)
+        newGameState = GameState newGameStateDomain ansNumber (guessesNumber+1)

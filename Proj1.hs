@@ -156,6 +156,7 @@ feedback target guess =
 --  selection of initial guess and the game state, as a tuple.
 --  It assumes that the cardNum ranges from 2-4 inclusively.
 initialGuess :: Int -> (Selection,GameState)
+-- initialGuess ansNum = trace (show $ firstGuess) (firstGuess, GameState gameState ansNum zeroGuess)
 initialGuess ansNum = (firstGuess, GameState gameState ansNum zeroGuess)
     where
         -- initially game state is the whole domain
@@ -166,8 +167,8 @@ initialGuess ansNum = (firstGuess, GameState gameState ansNum zeroGuess)
         -- the guideline: ranks that are about 13/(n + 1) ranks apart are 
         -- chosen and associated with different suits.
         rankApart = rankNum `div` (ansNum + 1)
-        ans4Cards = reverse $ zipWith (\s i -> Card s ([R2 .. Ace] !! i)) 
-                        [Club .. Spade] ([0, rankApart .. 12])
+        ans4Cards = zipWith (\s i -> Card s ([R2 .. Ace] !! i)) 
+                        [Spade, Heart .. Club] ([rankApart, rankApart+rankApart .. 12])
         firstGuess = take ansNum $ ans4Cards
 
 -- |A major function. It takes as input a pair of the previous guess and game 
@@ -188,7 +189,7 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
                 then
                     head newGameStateDomain
                 --  score: expected number of remaining possible answers for 
-                --  the guess. Sort the list that [(score, guess)] increasingly. 
+                --  the guess. Sort the list [(score, guess)] increasingly.
                 --  Thus the guess with min score is chosen.
                 else
                     snd $ head $ sort $ calGuessesScore newGameStateDomain

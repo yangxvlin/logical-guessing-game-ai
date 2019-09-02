@@ -37,94 +37,94 @@ if __name__ == '__main__':
             deck.append(j+i)
 
     # # n = 2
-    answers2Cards = generateAllSelections(2, deck)
-    count = 0
-    passed = 0
-    not_passed = 0
-    total_guesses = 0
-    time_out = 0
-    max_time = 0
-    min_time = float('Inf')
-    total_time = 0
-    for test in answers2Cards:
-        start = time.time()
-        res = subprocess.run(["./Proj1Test", test[0], test[1]], stdout=subprocess.PIPE) 
-        end = time.time()
+    # answers2Cards = generateAllSelections(2, deck)
+    # count = 0
+    # passed = 0
+    # not_passed = 0
+    # total_guesses = 0
+    # time_out = 0
+    # max_time = 0
+    # min_time = float('Inf')
+    # total_time = 0
+    # for test in answers2Cards:
+    #     start = time.time()
+    #     res = subprocess.run(["./Proj1Test", test[0], test[1]], stdout=subprocess.PIPE) 
+    #     end = time.time()
         
-        epsilon = round(end - start, 4)
-        total_time += epsilon
-        if epsilon > RUNTIME_THRESHOLD:
-            time_out += 1
-        if epsilon > max_time:
-            max_time = epsilon
-        if epsilon < min_time:
-            min_time = epsilon
+    #     epsilon = round(end - start, 4)
+    #     total_time += epsilon
+    #     if epsilon > RUNTIME_THRESHOLD:
+    #         time_out += 1
+    #     if epsilon > max_time:
+    #         max_time = epsilon
+    #     if epsilon < min_time:
+    #         min_time = epsilon
 
-        stdout_str = str(res.stdout, 'utf-8').replace("\r", "").split("\n")
+    #     stdout_str = str(res.stdout, 'utf-8').replace("\r", "").split("\n")
 
-        num_guess = int(stdout_str[0])
-        quality = stdout_str[1]
+    #     num_guess = int(stdout_str[0])
+    #     quality = stdout_str[1]
 
-        if quality != "100.0":
-            if DEBUG:
-                print(test, ":", quality, "with", num_guess, "guesses", str(epsilon)+"(s)")
-            not_passed += 1
-        else:
-            passed += 1
+    #     if quality != "100.0":
+    #         if DEBUG:
+    #             print(test, ":", quality, "with", num_guess, "guesses", str(epsilon)+"(s)")
+    #         not_passed += 1
+    #     else:
+    #         passed += 1
         
-        count += 1
-        total_guesses += num_guess
-    print("*** n=2 ****************************************")
-    print("{}/{} {:.2f}% passed.".format(passed, count, passed/count * 100))
-    print("{}/{} {:.2f}% timeout.".format(time_out, count, time_out/count * 100))
-    print("min: {}(s) max: {}(s) avg: {}(s)".format(min_time, max_time, round(total_time/count, 4)))
-    print("average {:.4f} guesses per test.".format(total_guesses / count))
-    print("************************************************")
+    #     count += 1
+    #     total_guesses += num_guess
+    # print("*** n=2 ****************************************")
+    # print("{}/{} {:.2f}% passed.".format(passed, count, passed/count * 100))
+    # print("{}/{} {:.2f}% timeout.".format(time_out, count, time_out/count * 100))
+    # print("min: {}(s) max: {}(s) avg: {}(s)".format(min_time, max_time, round(total_time/count, 4)))
+    # print("average {:.4f} guesses per test.".format(total_guesses / count))
+    # print("************************************************")
 
-    # # n = 3
-    answers3Cards = sample(generateAllSelections(3, deck), 2000)
-    count = 0
-    passed = 0
-    not_passed = 0
-    total_guesses = 0
-    time_out = 0
-    max_time = 0
-    min_time = float('Inf')
-    total_time = 0
-    for test in answers3Cards:
-        start = time.time()
-        res = subprocess.run(["./Proj1Test", test[0], test[1], test[2]], stdout=subprocess.PIPE) 
-        end = time.time()
+    # # # n = 3
+    # answers3Cards = sample(generateAllSelections(3, deck), 2000)
+    # count = 0
+    # passed = 0
+    # not_passed = 0
+    # total_guesses = 0
+    # time_out = 0
+    # max_time = 0
+    # min_time = float('Inf')
+    # total_time = 0
+    # for test in answers3Cards:
+    #     start = time.time()
+    #     res = subprocess.run(["./Proj1Test", test[0], test[1], test[2]], stdout=subprocess.PIPE) 
+    #     end = time.time()
         
-        epsilon = round(end - start, 4)
-        total_time += epsilon
-        if epsilon > RUNTIME_THRESHOLD:
-            time_out += 1
-        if epsilon > max_time:
-            max_time = epsilon
-        if epsilon < min_time:
-            min_time = epsilon
+    #     epsilon = round(end - start, 4)
+    #     total_time += epsilon
+    #     if epsilon > RUNTIME_THRESHOLD:
+    #         time_out += 1
+    #     if epsilon > max_time:
+    #         max_time = epsilon
+    #     if epsilon < min_time:
+    #         min_time = epsilon
 
-        stdout_str = str(res.stdout, 'utf-8').replace("\r", "").split("\n")
+    #     stdout_str = str(res.stdout, 'utf-8').replace("\r", "").split("\n")
 
-        num_guess = int(stdout_str[0])
-        quality = stdout_str[1]
+    #     num_guess = int(stdout_str[0])
+    #     quality = stdout_str[1]
 
-        if quality != "100.0":
-            if DEBUG:
-                print(test, ":", quality, "with", num_guess, "guesses", str(epsilon)+"(s)")
-            not_passed += 1
-        else:
-            passed += 1
+    #     if quality != "100.0":
+    #         if DEBUG:
+    #             print(test, ":", quality, "with", num_guess, "guesses", str(epsilon)+"(s)")
+    #         not_passed += 1
+    #     else:
+    #         passed += 1
         
-        count += 1
-        total_guesses += num_guess
-    print("*** n=3 ****************************************")
-    print("{}/{} {:.2f}% passed.".format(passed, count, passed/count * 100))
-    print("{}/{} {:.2f}% timeout.".format(time_out, count, time_out/count * 100))
-    print("min: {}(s) max: {}(s) avg: {}(s)".format(min_time, max_time, round(total_time/count, 4)))
-    print("average {:.4f} guesses per test.".format(total_guesses / count))
-    print("************************************************")
+    #     count += 1
+    #     total_guesses += num_guess
+    # print("*** n=3 ****************************************")
+    # print("{}/{} {:.2f}% passed.".format(passed, count, passed/count * 100))
+    # print("{}/{} {:.2f}% timeout.".format(time_out, count, time_out/count * 100))
+    # print("min: {}(s) max: {}(s) avg: {}(s)".format(min_time, max_time, round(total_time/count, 4)))
+    # print("average {:.4f} guesses per test.".format(total_guesses / count))
+    # print("************************************************")
 
     # n = 4
     answers4Cards = sample(generateAllSelections(4, deck), 2000)

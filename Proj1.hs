@@ -156,7 +156,6 @@ feedback target guess =
 --  selection of initial guess and the game state, as a tuple.
 --  It assumes that the cardNum ranges from 2-4 inclusively.
 initialGuess :: Int -> (Selection,GameState)
--- initialGuess ansNum = trace (show $ firstGuess) (firstGuess, GameState gameState ansNum zeroGuess)
 initialGuess ansNum = (firstGuess, GameState gameState ansNum zeroGuess)
     where
         -- initially game state is the whole domain
@@ -189,7 +188,7 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
         guess = if (skipScoreCalTest (ansNumber, guessesNumber, 
                     newGameStateLen)) 
                 then
-                    head newGameStateDomain
+                    newGameStateDomain !! (newGameStateLen `div` 2)
                 --  score: expected number of remaining possible answers for 
                 --  the guess. Sort the list [(score, guess)] increasingly.
                 --  Thus the guess with min score is chosen.

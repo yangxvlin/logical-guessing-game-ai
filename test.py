@@ -66,7 +66,7 @@ def myTest(n, deck, sample_size=None):
 
         if quality != "100.0":
             if DEBUG:
-                print(test, ":", quality, "with", num_guess, "guesses", str(epsilon)+"(s)")
+                print("#{}".format(count), test, ":", quality, "with", num_guess, "guesses", str(epsilon)+"(s)", flush=True)
             not_passed += 1
         else:
             passed += 1
@@ -74,7 +74,6 @@ def myTest(n, deck, sample_size=None):
         count += 1
         total_guesses += num_guess
 
-        print("{}/{}".format(count, sample_size), flush=True)
     print("*** n={} ****************************************".format(n))
     print("{}/{} {:.2f}% passed.".format(passed, count, passed/count * 100))
     print("{}/{} {:.2f}% timeout.".format(time_out, count, time_out/count * 100))

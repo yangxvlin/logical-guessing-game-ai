@@ -184,7 +184,8 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
             feedback x preGuess) $ delete preGuess oldGameStateDoamin
         newGameStateLen = length newGameStateDomain
         
-        -- skip calculating score when domain space is too large
+        -- choose the middle instead of calculating score when domain space is
+        -- too large
         guess = if (skipScoreCalTest (ansNumber, guessesNumber, 
                     newGameStateLen)) 
                 then
@@ -194,5 +195,4 @@ nextGuess (preGuess, oldGameState) preGuessFeedback = (guess, newGameState)
                 --  Thus the guess with min score is chosen.
                 else
                     snd $ head $ sort $ calGuessesScore newGameStateDomain
-
         newGameState = GameState newGameStateDomain ansNumber (guessesNumber+1)

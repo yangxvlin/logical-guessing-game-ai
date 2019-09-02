@@ -33,6 +33,8 @@ def myTest(n, deck, sample_size=None):
     tests = generateAllSelections(n, deck)
     if sample_size is not None:
         tests = sample(tests, sample_size)
+    else:
+        sample_size = len(tests)
 
     count = 0
     passed = 0
@@ -71,6 +73,8 @@ def myTest(n, deck, sample_size=None):
         
         count += 1
         total_guesses += num_guess
+
+        print("{}/{}".format(count, sample_size), flush=True)
     print("*** n={} ****************************************".format(n))
     print("{}/{} {:.2f}% passed.".format(passed, count, passed/count * 100))
     print("{}/{} {:.2f}% timeout.".format(time_out, count, time_out/count * 100))

@@ -30,13 +30,13 @@ type Selection = [Card]
 
 -- |The respondent's feedback, made up by (correctCards, lowerRanks, 
 --  correctRanks, higherRanks, correctSuits).
---
 --  See `feedback` function to see how each element is defined.
 type Feedback = (Int,Int,Int,Int,Int)
 
 -- |The representation of informaiton to be passed from one call of either of
 --  the guess function to the other call. In order to cascading data between 
---  funcitons. It records the possible selections based on the past guesses.
+--  funcitons. It records the possible selections based on the past guesses, 
+--  cards to be guessed, guesses have tried.
 data GameState = GameState {domain::[Selection], ansNum::Int, guessesNum::Int}
 
 -- ******************************* constants **********************************
@@ -156,15 +156,15 @@ feedback target guess =
 --  selection of initial guess and the game state, as a tuple.
 --  It assumes that the cardNum ranges from 2-4 inclusively.
 initialGuess :: Int -> (Selection,GameState)
-initialGuess ansNum = (firstGuess, GameState gameState ansNum zeroGuess)
+initialGuess ansNum = (firstGuess, GameState gameStateDomain ansNum zeroGuess)
     where
         -- initially game state is the whole domain
         deck = [firstCard .. lastCard]
-        gameState = generateAllSelections ansNum deck
+        gameStateDomain = generateAllSelections ansNum deck
         
         -- In general, for an n card answer, first guess is chosen according to
         -- the guideline: ranks that are about 13/(n + 1) ranks apart are 
-        -- chosen and associated with different suits.
+        -- chosen and associated with different suits. 12 is ACS's index.
         rankApart = rankNum `div` (ansNum + 1)
         ans4Cards = zipWith (\s i -> Card s ([R2 .. Ace] !! i)) 
                         [Spade, Heart .. Club] 

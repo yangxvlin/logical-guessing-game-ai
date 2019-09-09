@@ -90,10 +90,11 @@ if __name__ == '__main__':
             deck.append(j+i)
 
     n = 2
-    myTest(n, deck)
+    # myTest(n, deck, 10)
 
     n = 3
-    myTest(n, deck, 7000)
+    # myTest(n, deck, 10)
 
     n = 4
-    myTest(n, deck, 7000)
+    for i in range(0, 10):
+        myTest(n, deck, 10)

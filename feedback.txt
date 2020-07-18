@@ -1,0 +1,62 @@
+Please find enclosed your project listing annotated with comments
+about coding style.  Please consider this feedback as you complete
+Project 2.
+
+I apologise for the lateness of this feedback.  We ran into some
+difficulty getting all the submissions marked promptly.
+
+In summary, you received  70 / 70 marks for correctness
+and quality of guesses (the objective assessment), and  22 / 30
+marks for code quality.  Your submission was 0 hours late,
+with an extension of 0 hours, incurring a penalty of 0%.
+This all gives you
+
+    92.000000% 
+
+for this project.  This will be scaled to the value of the project.
+
+We assessed your code quality according to these criteria, leading to
+your  22 / 30 marks for code quality:
+
+  3 / 5  Quality of file-level documentation, including authorship
+
+  4 / 5  Quality of function- and type-level documentation
+
+  3 / 5  Readability of code (lines not wrapped, good, consistent
+         layout, no redundant comments)
+
+  4 / 5  Understandability of code (good choice of names,
+         subtleties documented, well organised)
+
+  4 / 5  Appropriate abstraction (no chunks of repeated code; no
+         really long functions, good types
+
+  4 / 5  Good use of language and libraries
+
+These assessments reflect the annotations in the accompanying program
+listing.
+
+Each of these criteria was assessed on this 0-5 scale:
+
+    5 = practically flawless
+    4 = very good, but not perfect
+    3 = passable, but not great
+    2 = unsatisfactory, but on the right track
+    1 = very poor
+    0 = no effort
+
+
+For correctness and guess quality, you received:
+
+  10 / 10  Correctness of your feedback function
+
+  20 / 20  Correctness of your guessing for 2-card targets
+
+  30 / 30  Quality of your guessing for 2-card targets
+
+  5 /  5  Correctness of your guessing for 3- and 4-card targets
+
+  5 /  5  Quality of your guessing for 3- and 4-card targets  
+
+
+- Peter and the team
